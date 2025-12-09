@@ -24,7 +24,9 @@
                 extend: {
                     fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'] },
                     colors: { ios: { bg: '#F2F2F7', blue: '#007AFF', red: '#FF3B30', green: '#34C759' } },
-                    boxShadow: { 'up': '0 -4px 20px -5px rgba(0, 0, 0, 0.1)' }
+                    boxShadow: { 'up': '0 -4px 20px -5px rgba(0, 0, 0, 0.1)' },
+                    animation: { 'bounce-sm': 'bounce-sm 0.3s cubic-bezier(0.25, 1, 0.5, 1)' },
+                    keyframes: { 'bounce-sm': { '0%': { transform: 'scale(0.95)' }, '50%': { transform: 'scale(1.02)' }, '100%': { transform: 'scale(1)' } } }
                 }
             }
         }
@@ -35,15 +37,54 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
         html, body { background-color: #FFFFFF; height: 100%; width: 100%; }
-        
-        /* 移除複雜動畫以解決卡頓 */
-        .fade-enter-active, .fade-leave-active { transition: opacity 0.15s ease; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
-        
         * { -webkit-touch-callout: none; }
         input, textarea, select { -webkit-user-select: text; user-select: text; }
         .safe-top { padding-top: env(safe-area-inset-top, 20px); }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
+
+        /* --- 核心動畫區 (Animation Magic) --- */
+
+        /* 1. 頁面切換 (Fade + Scale) */
+        .page-enter-active, .page-leave-active {
+            transition: opacity 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .page-enter-from {
+            opacity: 0;
+            transform: scale(0.96) translateY(10px);
+        }
+        .page-leave-to {
+            opacity: 0;
+            transform: scale(1.02);
+        }
+
+        /* 2. 列表項目 (List Items) - 刪除與新增的流暢感 */
+        .list-move, 
+        .list-enter-active,
+        .list-leave-active {
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .list-enter-from,
+        .list-leave-to {
+            opacity: 0;
+            transform: translateY(20px) scale(0.9);
+        }
+        /* 讓刪除時周圍的項目平滑移動 */
+        .list-leave-active {
+            position: absolute;
+            width: 100%; 
+        }
+
+        /* 3. 彈出視窗 (Modal Slide Up) */
+        .slide-up-enter-active, .slide-up-leave-active {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* iOS 物理曲線 */
+        }
+        .slide-up-enter-from, .slide-up-leave-to {
+            transform: translateY(100%);
+        }
+        
+        /* 4. 淡入背景 */
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
     </style>
 </head>
 
@@ -51,9 +92,9 @@
 
     <div id="app" class="w-full h-[100dvh] bg-white flex flex-col relative overflow-hidden">
         
-        <header class="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pb-2 bg-white/95 border-b border-gray-100 safe-top min-h-[50px]">
+        <header class="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pb-2 bg-white/90 backdrop-blur-md border-b border-gray-100 safe-top min-h-[50px] transition-all duration-300">
             <h1 class="text-lg font-bold tracking-tight text-gray-900">{{ pageTitle }}</h1>
-            <button @click="currentTab = 'profile'" class="w-8 h-8 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center active:scale-90 transition-transform">
+            <button @click="currentTab = 'profile'" class="w-8 h-8 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center active:scale-90 transition-transform shadow-sm">
                 <img v-if="userAvatar" :src="userAvatar" class="w-full h-full object-cover">
                 <i v-else class="fa-solid fa-user text-gray-400 text-xs"></i>
             </button>
@@ -61,113 +102,145 @@
 
         <main class="flex-1 relative overflow-hidden pt-[calc(env(safe-area-inset-top)+50px)] pb-[calc(env(safe-area-inset-bottom)+60px)]">
             
-            <div v-show="currentTab === 'schedule'" class="flex flex-col h-full bg-gray-50">
+            <transition name="page" mode="out-in">
                 
-                <div class="h-[35%] w-full relative z-0 shrink-0">
-                    <iframe :src="mapSrc" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
-                    <div class="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-black/10 to-transparent pointer-events-none"></div>
-                </div>
-
-                <div class="flex-1 bg-white rounded-t-3xl relative z-10 -mt-4 shadow-up flex flex-col overflow-hidden">
-                    
-                    <div class="pt-4 pb-2 px-4 border-b border-gray-50 bg-white shrink-0">
-                        <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3"></div>
-                        <div class="flex overflow-x-auto hide-scrollbar gap-2 pb-1">
-                            <button v-for="day in maxDays" :key="day" 
-                                @click="currentDay = day" 
-                                :class="currentDay === day ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400'"
-                                class="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap">
-                                <span class="opacity-60 mr-1">DAY</span>{{ day }}
-                            </button>
-                            <button @click="addNewDay" class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 text-ios-blue flex items-center justify-center active:bg-gray-200 transition">
-                                <i class="fa-solid fa-plus text-xs"></i>
-                            </button>
-                        </div>
+                <div v-if="currentTab === 'schedule'" key="schedule" class="flex flex-col h-full bg-gray-50">
+                    <div class="h-[35%] w-full relative z-0 shrink-0">
+                        <iframe :src="mapSrc" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                        <div class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/5 to-transparent pointer-events-none"></div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-4">
-                         <div v-if="itineraryDisplay.length === 0" class="flex flex-col items-center justify-center h-40 text-gray-300">
-                            <p class="text-sm">點擊右下角新增行程</p>
+                    <div class="flex-1 bg-white rounded-t-3xl relative z-10 -mt-5 shadow-up flex flex-col overflow-hidden ring-1 ring-black/5">
+                        <div class="pt-4 pb-2 px-4 border-b border-gray-50 bg-white shrink-0 z-20">
+                            <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3 opacity-50"></div>
+                            <div class="flex overflow-x-auto hide-scrollbar gap-2 pb-1">
+                                <button v-for="day in maxDays" :key="day" 
+                                    @click="currentDay = day" 
+                                    :class="currentDay === day ? 'bg-black text-white shadow-md scale-105' : 'bg-gray-100 text-gray-400'"
+                                    class="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 whitespace-nowrap">
+                                    <span class="opacity-60 mr-1">DAY</span>{{ day }}
+                                </button>
+                                <button @click="addNewDay" class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 text-ios-blue flex items-center justify-center active:bg-gray-200 transition">
+                                    <i class="fa-solid fa-plus text-xs"></i>
+                                </button>
+                            </div>
                         </div>
 
-                        <div v-for="(item, index) in itineraryDisplay" :key="item.id" 
-                             @click="updateMapFocus(item.location)"
-                             class="flex gap-4 group cursor-pointer active:opacity-60 transition-opacity">
-                            
-                            <div class="flex flex-col items-center pt-1 min-w-[40px]">
-                                <span class="text-xs font-bold text-gray-900 font-mono">{{ item.time }}</span>
-                                <div class="w-0.5 h-full bg-gray-100 mt-1 rounded-full group-last:bg-transparent relative">
-                                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-300 rounded-full group-hover:bg-black transition-colors"></div>
-                                </div>
+                        <div class="flex-1 overflow-y-auto hide-scrollbar p-4 relative">
+                             <div v-if="itineraryDisplay.length === 0" class="flex flex-col items-center justify-center h-40 text-gray-300 animate-pulse">
+                                <p class="text-sm">點擊右下角新增行程</p>
                             </div>
 
-                            <div class="flex-1 pb-4 border-b border-gray-50">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h3 class="font-bold text-gray-900 text-sm">{{ item.title }}</h3>
-                                        <div v-if="item.transport && item.transport !== 'none'" class="inline-flex items-center gap-1 mt-1 text-gray-500 bg-gray-50 px-2 py-0.5 rounded text-[10px] font-bold">
-                                            <span v-html="getTransportIcon(item.transport)"></span>
-                                            <span>{{ getTransportName(item.transport) }}</span>
+                            <transition-group name="list" tag="div" class="space-y-4 pb-20 relative">
+                                <div v-for="(item, index) in itineraryDisplay" :key="item.id" 
+                                     @click="updateMapFocus(item.location)"
+                                     class="flex gap-4 group cursor-pointer active:scale-[0.98] transition-transform duration-200 bg-white">
+                                    
+                                    <div class="flex flex-col items-center pt-1 min-w-[40px]">
+                                        <span class="text-xs font-bold text-gray-900 font-mono">{{ item.time }}</span>
+                                        <div class="w-0.5 h-full bg-gray-100 mt-1 rounded-full relative overflow-hidden">
+                                            <div class="absolute top-0 left-0 w-full h-full bg-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                         </div>
-                                        <p class="text-xs text-gray-400 mt-1 truncate max-w-[150px]"><i class="fa-solid fa-location-dot text-[10px] mr-1"></i>{{ item.location }}</p>
                                     </div>
-                                    <button @click.stop="deleteSchedule(item.id)" class="text-gray-300 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
+
+                                    <div class="flex-1 pb-4 border-b border-gray-50">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h3 class="font-bold text-gray-900 text-sm">{{ item.title }}</h3>
+                                                <div v-if="item.transport && item.transport !== 'none'" class="inline-flex items-center gap-1 mt-1 text-gray-500 bg-gray-50 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                    <span v-html="getTransportIcon(item.transport)"></span>
+                                                    <span>{{ getTransportName(item.transport) }}</span>
+                                                </div>
+                                                <p class="text-xs text-gray-400 mt-1 truncate max-w-[150px]"><i class="fa-solid fa-location-dot text-[10px] mr-1"></i>{{ item.location }}</p>
+                                            </div>
+                                            <button @click.stop="deleteSchedule(item.id)" class="text-gray-300 hover:text-red-500 p-2 transition-colors"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                                        </div>
+                                    </div>
                                 </div>
+                            </transition-group>
+                        </div>
+
+                        <button @click="showAddSchedule = true" class="absolute bottom-6 right-6 w-12 h-12 bg-black text-white rounded-full shadow-lg flex items-center justify-center text-lg active:scale-75 transition-transform duration-300 z-20 hover:shadow-xl">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div v-else-if="currentTab === 'wallet'" key="wallet" class="h-full overflow-y-auto p-4 space-y-4 bg-white">
+                    <div class="bg-gradient-to-r from-gray-800 to-black text-white p-6 rounded-2xl shadow-lg relative overflow-hidden transform transition hover:scale-[1.01] duration-300"><div class="relative z-10"><p class="text-xs font-medium opacity-60 uppercase tracking-wider">Total Expenses</p><h2 class="text-3xl font-bold mt-1 tracking-tight">NT$ {{ totalExpense.toLocaleString() }}</h2></div><i class="fa-brands fa-cc-visa absolute -bottom-2 -right-2 text-7xl opacity-10 rotate-12"></i></div>
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3"><div class="flex gap-2"><input v-model="newExpense.name" placeholder="消費項目" class="flex-1 bg-white p-3 rounded-xl text-sm font-bold outline-none transition focus:ring-2 focus:ring-black/5"><input v-model.number="newExpense.amount" type="number" placeholder="$" class="w-20 bg-white p-3 rounded-xl text-sm font-bold outline-none text-center transition focus:ring-2 focus:ring-black/5"></div><div class="flex gap-2"><button @click="newExpense.type = 'cash'" :class="newExpense.type === 'cash' ? 'bg-white shadow text-black' : 'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all duration-300">現金</button><button @click="newExpense.type = 'card'" :class="newExpense.type === 'card' ? 'bg-white shadow text-ios-blue' : 'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all duration-300">信用卡</button><button @click="addExpense" class="bg-black text-white w-10 rounded-lg flex items-center justify-center shadow active:scale-90 transition"><i class="fa-solid fa-plus"></i></button></div></div>
+                    
+                    <transition-group name="list" tag="div" class="space-y-2 relative">
+                        <div v-for="(expense, idx) in expenses" :key="expense.id || idx" class="bg-white p-3 rounded-xl border border-gray-100 flex justify-between items-center shadow-sm">
+                            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors duration-300" :class="expense.type === 'card' ? 'bg-blue-50 text-ios-blue' : 'bg-green-50 text-green-600'"><i :class="expense.type === 'card' ? 'fa-solid fa-credit-card' : 'fa-solid fa-money-bill'"></i></div><span class="font-bold text-gray-800 text-sm">{{ expense.name }}</span></div>
+                            <div class="flex items-center gap-3"><span class="font-bold text-gray-900 text-sm">-{{ expense.amount }}</span><button @click="deleteExpense(idx)" class="text-gray-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-circle-minus"></i></button></div>
+                        </div>
+                    </transition-group>
+                </div>
+
+                <div v-else-if="currentTab === 'shop'" key="shop" class="h-full overflow-y-auto p-4 space-y-4 bg-white">
+                    <div class="flex gap-2"><input v-model="newShopItem" @keyup.enter="addShopItem" type="text" placeholder="輸入想買的東西..." class="flex-1 bg-gray-50 p-4 rounded-xl outline-none text-sm font-bold transition focus:ring-2 focus:ring-black/5"><button @click="addShopItem" class="bg-black text-white px-5 rounded-xl font-bold shadow active:scale-95 transition"><i class="fa-solid fa-plus"></i></button></div>
+                    <transition-group name="list" tag="div" class="space-y-2 relative">
+                        <div v-for="(item, idx) in shopList" :key="item.id || idx" class="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between transition-all duration-300" :class="item.done ? 'opacity-50 grayscale' : ''">
+                            <div @click="toggleShopItem(idx)" class="flex items-center gap-3 flex-1 cursor-pointer select-none">
+                                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300" :class="item.done ? 'bg-black border-black scale-110' : 'border-gray-200'"><i v-if="item.done" class="fa-solid fa-check text-white text-[10px]"></i></div>
+                                <span class="font-bold text-gray-800 transition-all" :class="{'line-through': item.done}">{{ item.name }}</span>
+                            </div>
+                            <button @click="deleteShopItem(idx)" class="text-gray-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </transition-group>
+                </div>
+
+                <div v-else-if="currentTab === 'flight'" key="flight" class="h-full overflow-y-auto p-4 space-y-4 bg-white">
+                    <div class="bg-gray-50 p-4 rounded-2xl space-y-3 shadow-inner"><div class="flex justify-between items-center"><h3 class="font-bold text-gray-800 text-sm">新增機票</h3></div><div class="flex gap-2"><input v-model="newFlight.airline" placeholder="航空" class="flex-1 bg-white p-2 rounded-lg text-xs font-bold outline-none transition focus:ring-2 focus:ring-black/5"><input v-model="newFlight.flightNo" placeholder="班次" class="w-1/3 bg-white p-2 rounded-lg text-xs font-bold outline-none transition focus:ring-2 focus:ring-black/5"></div><div class="flex gap-2"><input v-model="newFlight.from" placeholder="出發" class="flex-1 bg-white p-2 rounded-lg text-xs font-bold outline-none transition focus:ring-2 focus:ring-black/5"><input v-model="newFlight.to" placeholder="抵達" class="flex-1 bg-white p-2 rounded-lg text-xs font-bold outline-none transition focus:ring-2 focus:ring-black/5"></div><div class="grid grid-cols-3 gap-2"><input v-model="newFlight.date" type="date" class="bg-white p-2 rounded-lg text-xs font-bold outline-none transition focus:ring-2 focus:ring-black/5"><input v-model="newFlight.time" type="time" class="bg-white p-2 rounded-lg text-xs font-bold outline-none transition focus:ring-2 focus:ring-black/5"><button @click="addFlight" class="bg-black text-white rounded-lg text-xs font-bold active:scale-95 transition">新增</button></div></div>
+                    <transition-group name="list" tag="div" class="space-y-4 relative">
+                        <div v-for="(ticket, idx) in flightList" :key="ticket.id || idx" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transform transition hover:scale-[1.01] duration-300">
+                            <div class="h-2 bg-ios-blue w-full"></div>
+                            <div class="p-4 relative">
+                                <div class="flex justify-between items-start mb-4"><div><h3 class="font-bold text-gray-800">{{ ticket.airline }} {{ ticket.flightNo }}</h3></div><i class="fa-solid fa-plane text-gray-200 text-xl"></i></div>
+                                <div class="flex justify-between items-center mb-4"><div class="text-center"><p class="text-2xl font-black text-gray-800">{{ ticket.from }}</p></div><div class="flex-1 flex flex-col items-center px-2"><div class="w-full h-px bg-gray-300"></div><p class="text-[10px] text-gray-400 mt-1">{{ ticket.time }}</p></div><div class="text-center"><p class="text-2xl font-black text-gray-800">{{ ticket.to }}</p></div></div>
+                                <div class="bg-gray-50 p-2 rounded-lg text-xs font-bold text-center text-gray-500">{{ ticket.date }}</div>
+                                <button @click="deleteFlight(idx)" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
-                        
-                        <div class="h-16"></div>
-                    </div>
-
-                    <button @click="showAddSchedule = true" class="absolute bottom-6 right-6 w-12 h-12 bg-black text-white rounded-full shadow-lg flex items-center justify-center text-lg active:scale-90 transition z-20">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
+                    </transition-group>
                 </div>
-            </div>
+            </transition>
 
-            <div v-if="currentTab === 'wallet'" class="h-full overflow-y-auto p-4 space-y-4 bg-white animate-fade-in">
-                <div class="bg-gradient-to-r from-gray-800 to-black text-white p-6 rounded-2xl shadow-lg relative overflow-hidden"><div class="relative z-10"><p class="text-xs font-medium opacity-60 uppercase tracking-wider">Total Expenses</p><h2 class="text-3xl font-bold mt-1 tracking-tight">NT$ {{ totalExpense.toLocaleString() }}</h2></div><i class="fa-brands fa-cc-visa absolute -bottom-2 -right-2 text-7xl opacity-10 rotate-12"></i></div>
-                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3"><div class="flex gap-2"><input v-model="newExpense.name" placeholder="消費項目" class="flex-1 bg-white p-3 rounded-xl text-sm font-bold outline-none"><input v-model.number="newExpense.amount" type="number" placeholder="$" class="w-20 bg-white p-3 rounded-xl text-sm font-bold outline-none text-center"></div><div class="flex gap-2"><button @click="newExpense.type = 'cash'" :class="newExpense.type === 'cash' ? 'bg-white shadow text-black' : 'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">現金</button><button @click="newExpense.type = 'card'" :class="newExpense.type === 'card' ? 'bg-white shadow text-ios-blue' : 'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">信用卡</button><button @click="addExpense" class="bg-black text-white w-10 rounded-lg flex items-center justify-center shadow active:scale-90"><i class="fa-solid fa-plus"></i></button></div></div>
-                <div class="space-y-2"><div v-for="(expense, idx) in expenses" :key="idx" class="bg-white p-3 rounded-xl border border-gray-100 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full flex items-center justify-center text-sm" :class="expense.type === 'card' ? 'bg-blue-50 text-ios-blue' : 'bg-green-50 text-green-600'"><i :class="expense.type === 'card' ? 'fa-solid fa-credit-card' : 'fa-solid fa-money-bill'"></i></div><span class="font-bold text-gray-800 text-sm">{{ expense.name }}</span></div><div class="flex items-center gap-3"><span class="font-bold text-gray-900 text-sm">-{{ expense.amount }}</span><button @click="deleteExpense(idx)" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-circle-minus"></i></button></div></div></div>
-            </div>
-
-            <div v-if="currentTab === 'shop'" class="h-full overflow-y-auto p-4 space-y-4 bg-white animate-fade-in">
-                <div class="flex gap-2"><input v-model="newShopItem" @keyup.enter="addShopItem" type="text" placeholder="輸入想買的東西..." class="flex-1 bg-gray-50 p-4 rounded-xl outline-none text-sm font-bold"><button @click="addShopItem" class="bg-black text-white px-5 rounded-xl font-bold shadow active:scale-95 transition"><i class="fa-solid fa-plus"></i></button></div>
-                <div class="space-y-2"><div v-for="(item, idx) in shopList" :key="idx" class="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between" :class="item.done ? 'opacity-50' : ''"><div @click="toggleShopItem(idx)" class="flex items-center gap-3 flex-1 cursor-pointer"><div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors" :class="item.done ? 'bg-black border-black' : 'border-gray-200'"><i v-if="item.done" class="fa-solid fa-check text-white text-[10px]"></i></div><span class="font-bold text-gray-800 transition-all" :class="{'line-through': item.done}">{{ item.name }}</span></div><button @click="deleteShopItem(idx)" class="text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button></div></div>
-            </div>
-
-            <div v-if="currentTab === 'flight'" class="h-full overflow-y-auto p-4 space-y-4 bg-white animate-fade-in">
-                <div class="bg-gray-50 p-4 rounded-2xl space-y-3"><div class="flex justify-between items-center"><h3 class="font-bold text-gray-800 text-sm">新增機票</h3></div><div class="flex gap-2"><input v-model="newFlight.airline" placeholder="航空" class="flex-1 bg-white p-2 rounded-lg text-xs font-bold outline-none"><input v-model="newFlight.flightNo" placeholder="班次" class="w-1/3 bg-white p-2 rounded-lg text-xs font-bold outline-none"></div><div class="flex gap-2"><input v-model="newFlight.from" placeholder="出發" class="flex-1 bg-white p-2 rounded-lg text-xs font-bold outline-none"><input v-model="newFlight.to" placeholder="抵達" class="flex-1 bg-white p-2 rounded-lg text-xs font-bold outline-none"></div><div class="grid grid-cols-3 gap-2"><input v-model="newFlight.date" type="date" class="bg-white p-2 rounded-lg text-xs font-bold outline-none"><input v-model="newFlight.time" type="time" class="bg-white p-2 rounded-lg text-xs font-bold outline-none"><button @click="addFlight" class="bg-black text-white rounded-lg text-xs font-bold">新增</button></div></div>
-                <div v-for="(ticket, idx) in flightList" :key="idx" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"><div class="h-2 bg-ios-blue w-full"></div><div class="p-4 relative"><div class="flex justify-between items-start mb-4"><div><h3 class="font-bold text-gray-800">{{ ticket.airline }} {{ ticket.flightNo }}</h3></div><i class="fa-solid fa-plane text-gray-200 text-xl"></i></div><div class="flex justify-between items-center mb-4"><div class="text-center"><p class="text-2xl font-black text-gray-800">{{ ticket.from }}</p></div><div class="flex-1 flex flex-col items-center px-2"><div class="w-full h-px bg-gray-300"></div><p class="text-[10px] text-gray-400 mt-1">{{ ticket.time }}</p></div><div class="text-center"><p class="text-2xl font-black text-gray-800">{{ ticket.to }}</p></div></div><div class="bg-gray-50 p-2 rounded-lg text-xs font-bold text-center text-gray-500">{{ ticket.date }}</div><button @click="deleteFlight(idx)" class="absolute top-4 right-4 text-gray-300 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div></div>
-            </div>
-
-            <div v-if="showAddSchedule" class="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                <div class="bg-white w-full max-w-sm p-6 rounded-3xl shadow-2xl space-y-4">
-                    <div class="flex justify-between items-center"><h3 class="font-bold text-lg">新增行程</h3><button @click="showAddSchedule = false" class="text-gray-400"><i class="fa-solid fa-times"></i></button></div>
-                    <div class="grid grid-cols-2 gap-3"><div class="bg-gray-50 p-2 rounded-xl"><label class="text-[10px] text-gray-400 font-bold block">時間</label><input v-model="newSchedule.time" type="time" class="bg-transparent w-full text-sm font-bold outline-none"></div><div class="bg-gray-50 p-2 rounded-xl"><label class="text-[10px] text-gray-400 font-bold block">交通</label><select v-model="newSchedule.transport" class="bg-transparent w-full text-sm font-bold outline-none"><option value="walk">🚶 步行</option><option value="train">🚇 地鐵</option><option value="taxi">🚕 計程車</option><option value="bus">🚌 巴士</option><option value="none">📍 定點</option></select></div></div>
-                    <div class="bg-gray-50 p-2 rounded-xl"><label class="text-[10px] text-gray-400 font-bold block">地區</label><input v-model="newSchedule.region" placeholder="ex: 東京" class="bg-transparent w-full text-sm font-bold outline-none"></div>
-                    <input v-model="newSchedule.title" placeholder="景點名稱" class="w-full bg-gray-50 p-3 rounded-xl text-sm font-bold outline-none"><input v-model="newSchedule.location" placeholder="Google Maps 地點" class="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none">
-                    <button @click="addScheduleItem" class="w-full bg-black text-white py-3 rounded-xl font-bold text-sm">確認新增</button>
+            <transition name="fade">
+                <div v-if="showAddSchedule" class="absolute inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+                    <transition name="slide-up" appear>
+                        <div v-if="showAddSchedule" class="bg-white w-full max-w-sm p-6 rounded-[2rem] shadow-2xl space-y-4 relative">
+                            <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-2"></div>
+                            <div class="flex justify-between items-center mb-1"><h3 class="font-bold text-gray-900 text-xl">新增行程</h3><button @click="showAddSchedule = false" class="w-8 h-8 bg-gray-50 rounded-full text-gray-400 hover:bg-gray-100 transition"><i class="fa-solid fa-times"></i></button></div>
+                            <div class="grid grid-cols-2 gap-3"><div class="bg-gray-50 p-2 rounded-xl"><label class="text-[10px] text-gray-400 font-bold block">時間</label><input v-model="newSchedule.time" type="time" class="bg-transparent w-full text-sm font-bold outline-none"></div><div class="bg-gray-50 p-2 rounded-xl"><label class="text-[10px] text-gray-400 font-bold block">交通</label><select v-model="newSchedule.transport" class="bg-transparent w-full text-sm font-bold outline-none"><option value="walk">🚶 步行</option><option value="train">🚇 地鐵</option><option value="taxi">🚕 計程車</option><option value="bus">🚌 巴士</option><option value="none">📍 定點</option></select></div></div>
+                            <div class="bg-gray-50 p-2 rounded-xl"><label class="text-[10px] text-gray-400 font-bold block">地區</label><input v-model="newSchedule.region" placeholder="ex: 東京" class="bg-transparent w-full text-sm font-bold outline-none"></div>
+                            <input v-model="newSchedule.title" placeholder="景點名稱" class="w-full bg-gray-50 p-3 rounded-xl text-sm font-bold outline-none transition focus:bg-white focus:ring-2 focus:ring-black/5"><input v-model="newSchedule.location" placeholder="Google Maps 地點" class="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-black/5">
+                            <button @click="addScheduleItem" class="w-full bg-black text-white py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform">確認新增</button>
+                        </div>
+                    </transition>
                 </div>
-            </div>
+            </transition>
 
         </main>
 
         <nav v-if="currentTab !== 'profile'" class="absolute bottom-0 left-0 right-0 bg-white/95 border-t border-gray-100 flex justify-around items-start pt-3 pb-safe-bottom z-50 safe-bottom min-h-[60px]">
-            <button @click="currentTab = 'schedule'" class="flex flex-col items-center w-14"><i class="fa-solid fa-map-location-dot text-xl mb-1" :class="currentTab === 'schedule' ? 'text-black' : 'text-gray-300'"></i><span class="text-[10px] font-bold" :class="currentTab === 'schedule' ? 'text-black' : 'text-gray-300'">行程</span></button>
-            <button @click="currentTab = 'wallet'" class="flex flex-col items-center w-14"><i class="fa-solid fa-wallet text-xl mb-1" :class="currentTab === 'wallet' ? 'text-black' : 'text-gray-300'"></i><span class="text-[10px] font-bold" :class="currentTab === 'wallet' ? 'text-black' : 'text-gray-300'">記帳</span></button>
-            <button @click="currentTab = 'shop'" class="flex flex-col items-center w-14"><i class="fa-solid fa-bag-shopping text-xl mb-1" :class="currentTab === 'shop' ? 'text-black' : 'text-gray-300'"></i><span class="text-[10px] font-bold" :class="currentTab === 'shop' ? 'text-black' : 'text-gray-300'">購物</span></button>
-            <button @click="currentTab = 'flight'" class="flex flex-col items-center w-14"><i class="fa-solid fa-plane-up text-xl mb-1" :class="currentTab === 'flight' ? 'text-black' : 'text-gray-300'"></i><span class="text-[10px] font-bold" :class="currentTab === 'flight' ? 'text-black' : 'text-gray-300'">登機</span></button>
+            <button @click="currentTab = 'schedule'" class="flex flex-col items-center w-14 transition-all duration-300" :class="currentTab === 'schedule' ? 'scale-105' : 'opacity-50'"><i class="fa-solid fa-map-location-dot text-xl mb-1" :class="currentTab === 'schedule' ? 'text-black' : 'text-gray-500'"></i><span class="text-[10px] font-bold" :class="currentTab === 'schedule' ? 'text-black' : 'text-gray-500'">行程</span></button>
+            <button @click="currentTab = 'wallet'" class="flex flex-col items-center w-14 transition-all duration-300" :class="currentTab === 'wallet' ? 'scale-105' : 'opacity-50'"><i class="fa-solid fa-wallet text-xl mb-1" :class="currentTab === 'wallet' ? 'text-black' : 'text-gray-500'"></i><span class="text-[10px] font-bold" :class="currentTab === 'wallet' ? 'text-black' : 'text-gray-500'">記帳</span></button>
+            <button @click="currentTab = 'shop'" class="flex flex-col items-center w-14 transition-all duration-300" :class="currentTab === 'shop' ? 'scale-105' : 'opacity-50'"><i class="fa-solid fa-bag-shopping text-xl mb-1" :class="currentTab === 'shop' ? 'text-black' : 'text-gray-500'"></i><span class="text-[10px] font-bold" :class="currentTab === 'shop' ? 'text-black' : 'text-gray-500'">購物</span></button>
+            <button @click="currentTab = 'flight'" class="flex flex-col items-center w-14 transition-all duration-300" :class="currentTab === 'flight' ? 'scale-105' : 'opacity-50'"><i class="fa-solid fa-plane-up text-xl mb-1" :class="currentTab === 'flight' ? 'text-black' : 'text-gray-500'"></i><span class="text-[10px] font-bold" :class="currentTab === 'flight' ? 'text-black' : 'text-gray-500'">登機</span></button>
         </nav>
 
-        <div v-if="currentTab === 'profile'" class="absolute inset-0 bg-white z-[60] flex flex-col safe-top animate-fade-in">
-            <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100"><span class="font-bold">個人中心</span><button @click="currentTab = 'schedule'" class="text-ios-blue font-bold text-sm bg-gray-50 px-3 py-1 rounded-full">完成</button></div>
-            <div class="p-6 flex flex-col items-center space-y-6">
-                <div class="w-20 h-20 rounded-full bg-gray-100 overflow-hidden"><i v-if="!userAvatar" class="fa-solid fa-user text-3xl text-gray-300 mt-6 ml-6"></i><img v-else :src="userAvatar" class="w-full h-full object-cover"></div>
-                <input v-model="userName" @input="saveToLocal" type="text" class="text-center text-xl font-bold bg-transparent border-b outline-none" placeholder="輸入名字">
-                <button @click="resetAllData" class="text-red-500 font-bold text-sm">重置所有資料</button>
+        <transition name="slide-up">
+            <div v-if="currentTab === 'profile'" class="absolute inset-0 bg-white z-[60] flex flex-col safe-top">
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100"><span class="font-bold">個人中心</span><button @click="currentTab = 'schedule'" class="text-ios-blue font-bold text-sm bg-gray-50 px-3 py-1 rounded-full active:bg-gray-100 transition">完成</button></div>
+                <div class="p-6 flex flex-col items-center space-y-6">
+                    <div class="w-24 h-24 rounded-full bg-gray-100 overflow-hidden shadow-inner"><i v-if="!userAvatar" class="fa-solid fa-user text-3xl text-gray-300 mt-8 ml-8"></i><img v-else :src="userAvatar" class="w-full h-full object-cover"></div>
+                    <input v-model="userName" @input="saveToLocal" type="text" class="text-center text-xl font-bold bg-transparent border-b outline-none transition focus:border-black" placeholder="輸入名字">
+                    <button @click="resetAllData" class="text-red-500 font-bold text-sm px-4 py-2 hover:bg-red-50 rounded-lg transition">重置所有資料</button>
+                </div>
             </div>
-        </div>
+        </transition>
 
     </div>
 
@@ -179,11 +252,14 @@
                 const currentTab = ref('schedule'); const currentDay = ref(1); const showAddSchedule = ref(false);
                 const itineraryData = ref([]); const expenses = ref([]); const shopList = ref([]); const flightList = ref([]); 
                 const userName = ref(''); const userAvatar = ref('');
-                const mapQuery = ref('Tokyo'); // 預設地圖地點
+                const mapQuery = ref('Tokyo');
 
                 const newSchedule = ref({ time: '10:00', title: '', location: '', transport: 'walk', region: '東京' }); 
                 const newExpense = ref({ name: '', amount: '', type: 'cash' }); const newShopItem = ref('');
                 const newFlight = ref({ airline: '', flightNo: '', from: '', to: '', date: '', time: '', gate: '' });
+
+                // 為現有數據添加 ID (為了動畫)
+                const ensureId = (list) => list.forEach(item => { if(!item.id) item.id = Date.now() + Math.random(); });
 
                 const saveToLocal = () => {
                     localStorage.setItem('tg_itinerary', JSON.stringify(itineraryData.value));
@@ -194,10 +270,10 @@
                 };
                 const loadFromLocal = () => {
                     try {
-                        if(localStorage.getItem('tg_itinerary')) itineraryData.value = JSON.parse(localStorage.getItem('tg_itinerary'));
-                        if(localStorage.getItem('tg_expenses')) expenses.value = JSON.parse(localStorage.getItem('tg_expenses'));
-                        if(localStorage.getItem('tg_shop')) shopList.value = JSON.parse(localStorage.getItem('tg_shop'));
-                        if(localStorage.getItem('tg_flights')) flightList.value = JSON.parse(localStorage.getItem('tg_flights'));
+                        if(localStorage.getItem('tg_itinerary')) { itineraryData.value = JSON.parse(localStorage.getItem('tg_itinerary')); ensureId(itineraryData.value); }
+                        if(localStorage.getItem('tg_expenses')) { expenses.value = JSON.parse(localStorage.getItem('tg_expenses')); ensureId(expenses.value); }
+                        if(localStorage.getItem('tg_shop')) { shopList.value = JSON.parse(localStorage.getItem('tg_shop')); ensureId(shopList.value); }
+                        if(localStorage.getItem('tg_flights')) { flightList.value = JSON.parse(localStorage.getItem('tg_flights')); ensureId(flightList.value); }
                         if(localStorage.getItem('tg_name')) userName.value = localStorage.getItem('tg_name');
                     } catch(e) {}
                 };
@@ -225,12 +301,12 @@
                     }
                 };
                 const deleteSchedule = (id) => { if(confirm('刪除？')) { itineraryData.value = itineraryData.value.filter(i => i.id !== id); saveToLocal(); }};
-                const addExpense = () => { if(newExpense.value.name && newExpense.value.amount) { expenses.value.unshift({ ...newExpense.value }); newExpense.value.name = ''; newExpense.value.amount = ''; saveToLocal(); }};
+                const addExpense = () => { if(newExpense.value.name && newExpense.value.amount) { expenses.value.unshift({ id: Date.now(), ...newExpense.value }); newExpense.value.name = ''; newExpense.value.amount = ''; saveToLocal(); }};
                 const deleteExpense = (idx) => { expenses.value.splice(idx, 1); saveToLocal(); };
-                const addShopItem = () => { if(newShopItem.value) { shopList.value.unshift({ name: newShopItem.value, done: false }); newShopItem.value = ''; saveToLocal(); }};
+                const addShopItem = () => { if(newShopItem.value) { shopList.value.unshift({ id: Date.now(), name: newShopItem.value, done: false }); newShopItem.value = ''; saveToLocal(); }};
                 const toggleShopItem = (idx) => { shopList.value[idx].done = !shopList.value[idx].done; saveToLocal(); };
                 const deleteShopItem = (idx) => { shopList.value.splice(idx, 1); saveToLocal(); };
-                const addFlight = () => { if(newFlight.value.flightNo) { flightList.value.push({ ...newFlight.value }); newFlight.value = { airline: '', flightNo: '', from: '', to: '', date: '', time: '', gate: '' }; saveToLocal(); }};
+                const addFlight = () => { if(newFlight.value.flightNo) { flightList.value.push({ id: Date.now(), ...newFlight.value }); newFlight.value = { airline: '', flightNo: '', from: '', to: '', date: '', time: '', gate: '' }; saveToLocal(); }};
                 const deleteFlight = (idx) => { if(confirm('刪除這張機票？')) { flightList.value.splice(idx, 1); saveToLocal(); }};
                 const resetAllData = () => { if(confirm('清除所有資料？')) { itineraryData.value = []; expenses.value = []; shopList.value = []; flightList.value = []; userName.value = ''; saveToLocal(); alert('已重置'); }};
 
