@@ -41,11 +41,8 @@
         * { -webkit-touch-callout: none; }
         input, textarea, select { -webkit-user-select: text; user-select: text; }
         
-        /* 安全區域變數 */
         .safe-top { padding-top: env(safe-area-inset-top, 20px); }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        
-        /* 避免底部導覽列遮擋內容的關鍵 padding */
         .content-safe-area { padding-bottom: calc(env(safe-area-inset-bottom) + 90px); }
 
         /* 動畫設定 */
@@ -57,6 +54,18 @@
 
         .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
         .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(10px); }
+        
+        /* 膠囊按鈕的樣式 */
+        .capsule-active {
+            background-color: #000;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: scale(1.05);
+        }
+        .capsule-inactive {
+            background-color: #F3F4F6;
+            color: #9CA3AF;
+        }
     </style>
 </head>
 
@@ -66,7 +75,7 @@
         
         <header class="absolute top-0 left-0 right-0 z-40 flex items-center justify-between px-5 pb-3 bg-white/95 backdrop-blur-sm border-b border-gray-100 safe-top min-h-[50px]">
             <h1 class="text-xl font-bold tracking-tight text-gray-900">{{ pageTitle }}</h1>
-            <button @click="currentTab = 'profile'" class="w-9 h-9 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center active:scale-95 transition-transform">
+            <button @click="openProfile" class="w-9 h-9 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center active:scale-95 transition-transform">
                 <img v-if="userAvatar" :src="userAvatar" class="w-full h-full object-cover">
                 <i v-else class="fa-solid fa-user text-gray-400 text-sm"></i>
             </button>
@@ -89,11 +98,11 @@
                             <div class="flex overflow-x-auto hide-scrollbar gap-3 pb-1 items-center">
                                 <button v-for="day in maxDays" :key="day" 
                                     @click="currentDay = day" 
-                                    :class="currentDay === day ? 'bg-black text-white shadow-lg scale-105' : 'bg-gray-100 text-gray-500'"
-                                    class="flex-shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap">
-                                    <span class="text-[10px] opacity-60 mr-1 uppercase">Day</span>{{ day }}
+                                    :class="currentDay === day ? 'capsule-active' : 'capsule-inactive'"
+                                    class="flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap border border-transparent">
+                                    <span class="text-[10px] opacity-70 mr-1 uppercase">Day</span>{{ day }}
                                 </button>
-                                <button @click="addNewDay" class="flex-shrink-0 w-9 h-9 rounded-full border-2 border-dashed border-gray-300 text-gray-400 flex items-center justify-center active:bg-gray-100 transition">
+                                <button @click="addNewDay" class="flex-shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-gray-300 text-gray-400 flex items-center justify-center active:bg-gray-100 transition">
                                     <i class="fa-solid fa-plus text-xs"></i>
                                 </button>
                             </div>
@@ -121,12 +130,10 @@
                                         <div class="flex justify-between items-start">
                                             <div class="space-y-1">
                                                 <h3 class="font-bold text-gray-900 text-base leading-snug">{{ item.title }}</h3>
-                                                
                                                 <div v-if="item.transport && item.transport !== 'none'" class="inline-flex items-center gap-1.5 text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md text-[11px] font-bold">
                                                     <span v-html="getTransportIcon(item.transport)"></span>
                                                     <span>{{ getTransportName(item.transport) }}</span>
                                                 </div>
-                                                
                                                 <p class="text-xs text-gray-400 flex items-center pt-1"><i class="fa-solid fa-location-dot text-[10px] mr-1.5 text-gray-300"></i>{{ item.location }}</p>
                                             </div>
                                             <button @click.stop="deleteSchedule(item.id)" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors -mr-2">
@@ -187,11 +194,8 @@
                         <input v-model="newShopItem" @keyup.enter="addShopItem" type="text" placeholder="新增待購清單..." class="flex-1 bg-gray-50 border border-gray-100 p-4 rounded-[1.2rem] shadow-sm outline-none focus:border-black/20 focus:bg-white transition-all font-bold text-sm">
                         <button @click="addShopItem" class="bg-black text-white px-6 rounded-[1.2rem] font-bold shadow-md active:scale-95 transition"><i class="fa-solid fa-plus"></i></button>
                     </div>
-                    
                     <transition-group name="list" tag="div" class="space-y-3">
-                        <div v-for="(item, idx) in shopList" :key="item.id || idx" 
-                             class="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-between transition-all duration-300 hover:border-gray-200" 
-                             :class="item.done ? 'opacity-60 bg-gray-50' : ''">
+                        <div v-for="(item, idx) in shopList" :key="item.id || idx" class="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-between transition-all duration-300 hover:border-gray-200" :class="item.done ? 'opacity-60 bg-gray-50' : ''">
                             <div @click="toggleShopItem(idx)" class="flex items-center gap-4 flex-1 cursor-pointer select-none">
                                 <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300" :class="item.done ? 'bg-black border-black' : 'border-gray-200'">
                                     <i v-if="item.done" class="fa-solid fa-check text-white text-[10px]"></i>
@@ -206,13 +210,30 @@
                 <div v-else-if="currentTab === 'flight'" key="flight" class="h-full overflow-y-auto p-5 bg-white content-safe-area">
                     <div class="bg-gray-50 p-5 rounded-[1.5rem] space-y-4 mb-6 border border-gray-100">
                         <div class="flex justify-between items-center"><h3 class="font-bold text-gray-800 text-sm">新增機票</h3></div>
-                        <div class="flex gap-3"><input v-model="newFlight.airline" placeholder="航空 (ex: 長榮)" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm"><input v-model="newFlight.flightNo" placeholder="班次" class="w-1/3 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm"></div>
-                        <div class="flex gap-3"><input v-model="newFlight.from" placeholder="出發地 (TPE)" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm"><input v-model="newFlight.to" placeholder="目的地 (NRT)" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm"></div>
-                        <div class="grid grid-cols-3 gap-3">
-                            <input v-model="newFlight.date" type="date" class="bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm col-span-1">
-                            <input v-model="newFlight.time" type="time" class="bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm col-span-1">
-                            <button @click="addFlight" class="bg-black text-white rounded-xl text-xs font-bold shadow-md active:scale-95 transition col-span-1">新增</button>
+                        <div class="flex gap-3">
+                            <input v-model="newFlight.airline" placeholder="航空" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            <input v-model="newFlight.flightNo" placeholder="班次" class="w-1/3 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
                         </div>
+                        <div class="flex gap-3">
+                            <input v-model="newFlight.from" placeholder="出發地 (TPE)" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            <input v-model="newFlight.to" placeholder="目的地 (NRT)" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                        </div>
+                        <div>
+                             <label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">搭乘日期</label>
+                             <input v-model="newFlight.date" type="date" class="w-full bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="flex-1">
+                                <label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">起飛時間</label>
+                                <input v-model="newFlight.depTime" type="time" class="w-full bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">抵達時間</label>
+                                <input v-model="newFlight.arrTime" type="time" class="w-full bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            </div>
+                        </div>
+                        
+                        <button @click="addFlight" class="w-full bg-black text-white py-3 rounded-xl text-xs font-bold shadow-md active:scale-95 transition mt-2">新增機票</button>
                     </div>
 
                     <transition-group name="list" tag="div" class="space-y-4">
@@ -221,9 +242,9 @@
                             <div class="p-5 relative">
                                 <div class="flex justify-between items-start mb-6"><div><h3 class="font-bold text-gray-900 text-lg">{{ ticket.airline }} <span class="text-gray-500 text-base ml-1">{{ ticket.flightNo }}</span></h3></div><i class="fa-solid fa-plane text-gray-100 text-2xl"></i></div>
                                 <div class="flex justify-between items-center mb-6">
-                                    <div class="text-center"><p class="text-3xl font-black text-gray-800 tracking-tight">{{ ticket.from }}</p></div>
-                                    <div class="flex-1 flex flex-col items-center px-4"><div class="w-full h-px bg-gray-200 relative"><div class="absolute right-0 -top-1 w-2 h-2 bg-gray-300 rounded-full"></div><div class="absolute left-0 -top-1 w-2 h-2 bg-gray-300 rounded-full"></div></div><p class="text-[10px] text-gray-400 mt-2 font-mono">{{ ticket.time }}</p></div>
-                                    <div class="text-center"><p class="text-3xl font-black text-gray-800 tracking-tight">{{ ticket.to }}</p></div>
+                                    <div class="text-center"><p class="text-3xl font-black text-gray-800 tracking-tight">{{ ticket.from }}</p><p class="text-[10px] text-gray-400 mt-1 font-mono">{{ ticket.depTime }}</p></div>
+                                    <div class="flex-1 flex flex-col items-center px-4"><div class="w-full h-px bg-gray-200 relative"><div class="absolute right-0 -top-1 w-2 h-2 bg-gray-300 rounded-full"></div><div class="absolute left-0 -top-1 w-2 h-2 bg-gray-300 rounded-full"></div></div><i class="fa-solid fa-plane text-gray-300 rotate-90 mt-2 text-xs"></i></div>
+                                    <div class="text-center"><p class="text-3xl font-black text-gray-800 tracking-tight">{{ ticket.to }}</p><p class="text-[10px] text-gray-400 mt-1 font-mono">{{ ticket.arrTime }}</p></div>
                                 </div>
                                 <div class="bg-gray-50 py-2 px-3 rounded-lg text-xs font-bold text-center text-gray-500 border border-gray-100 tracking-wide">{{ ticket.date }}</div>
                                 <button @click="deleteFlight(idx)" class="absolute top-5 right-5 text-gray-300 hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-trash"></i></button>
@@ -235,12 +256,10 @@
             </transition>
 
             <transition name="fade">
-                <div v-if="showAddSchedule" class="absolute inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+                <div v-if="showAddSchedule" class="absolute inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
                     <transition name="slide-up" appear>
-                        <div v-if="showAddSchedule" class="bg-white w-full max-w-sm p-7 rounded-[2rem] shadow-2xl space-y-5 relative mb-safe-bottom">
-                            <div class="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mb-2"></div>
-                            
-                            <div class="flex justify-between items-center">
+                        <div v-if="showAddSchedule" class="bg-white w-full max-w-sm p-6 rounded-[2rem] shadow-2xl space-y-4 relative max-h-[90vh] overflow-y-auto">
+                            <div class="flex justify-between items-center mb-2">
                                 <h3 class="font-bold text-gray-900 text-xl">新增行程</h3>
                                 <button @click="showAddSchedule = false" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-400 hover:bg-gray-100 transition"><i class="fa-solid fa-times"></i></button>
                             </div>
@@ -272,7 +291,7 @@
                                 <input v-model="newSchedule.location" placeholder="Google Maps 地點關鍵字" class="w-full bg-gray-50 p-4 rounded-2xl text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-black/5 border border-transparent focus:border-gray-100">
                             </div>
                             
-                            <button @click="addScheduleItem" class="w-full bg-black text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-transform shadow-lg">確認新增</button>
+                            <button @click="addScheduleItem" class="w-full bg-black text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-transform shadow-lg mt-2">確認新增</button>
                         </div>
                     </transition>
                 </div>
@@ -303,7 +322,7 @@
             <div v-if="currentTab === 'profile'" class="absolute inset-0 bg-white z-[60] flex flex-col safe-top">
                 <div class="h-14 flex items-center justify-between px-5 border-b border-gray-100 bg-white">
                     <span class="font-bold text-lg">個人中心</span>
-                    <button @click="currentTab = 'schedule'" class="text-ios-blue font-bold text-sm bg-blue-50 px-4 py-1.5 rounded-full active:bg-blue-100 transition">完成</button>
+                    <button @click="closeProfile" class="text-ios-blue font-bold text-sm bg-blue-50 px-4 py-1.5 rounded-full active:bg-blue-100 transition">完成</button>
                 </div>
                 <div class="p-8 flex flex-col items-center space-y-8 mt-10">
                     <div class="w-28 h-28 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center relative overflow-hidden shadow-sm">
@@ -326,16 +345,30 @@
         const { createApp, ref, computed, onMounted } = Vue;
         createApp({
             setup() {
-                const currentTab = ref('schedule'); const currentDay = ref(1); const showAddSchedule = ref(false);
+                const currentTab = ref('schedule');
+                const previousTab = ref('schedule'); // 紀錄上一個頁面
+                
+                const currentDay = ref(1); const showAddSchedule = ref(false);
                 const itineraryData = ref([]); const expenses = ref([]); const shopList = ref([]); const flightList = ref([]); 
                 const userName = ref(''); const userAvatar = ref('');
                 const mapQuery = ref('Tokyo');
 
                 const newSchedule = ref({ time: '10:00', title: '', location: '', transport: 'walk', region: '東京' }); 
                 const newExpense = ref({ name: '', amount: '', type: 'cash' }); const newShopItem = ref('');
-                const newFlight = ref({ airline: '', flightNo: '', from: '', to: '', date: '', time: '', gate: '' });
+                
+                // 修改：預設星宇航空，增加 depTime 與 arrTime
+                const newFlight = ref({ airline: '星宇航空', flightNo: '', from: '', to: '', date: '', depTime: '', arrTime: '', gate: '' });
 
                 const ensureId = (list) => list.forEach(item => { if(!item.id) item.id = Date.now() + Math.random(); });
+
+                // 個人中心邏輯
+                const openProfile = () => {
+                    previousTab.value = currentTab.value; // 記住現在在哪
+                    currentTab.value = 'profile';
+                };
+                const closeProfile = () => {
+                    currentTab.value = previousTab.value; // 回到原本的頁面
+                };
 
                 const saveToLocal = () => {
                     localStorage.setItem('tg_itinerary', JSON.stringify(itineraryData.value));
@@ -382,11 +415,19 @@
                 const addShopItem = () => { if(newShopItem.value) { shopList.value.unshift({ id: Date.now(), name: newShopItem.value, done: false }); newShopItem.value = ''; saveToLocal(); }};
                 const toggleShopItem = (idx) => { shopList.value[idx].done = !shopList.value[idx].done; saveToLocal(); };
                 const deleteShopItem = (idx) => { shopList.value.splice(idx, 1); saveToLocal(); };
-                const addFlight = () => { if(newFlight.value.flightNo) { flightList.value.push({ id: Date.now(), ...newFlight.value }); newFlight.value = { airline: '', flightNo: '', from: '', to: '', date: '', time: '', gate: '' }; saveToLocal(); }};
+                
+                // 新增機票 (修改：重置時保留預設星宇)
+                const addFlight = () => { 
+                    if(newFlight.value.flightNo) { 
+                        flightList.value.push({ id: Date.now(), ...newFlight.value }); 
+                        newFlight.value = { airline: '星宇航空', flightNo: '', from: '', to: '', date: '', depTime: '', arrTime: '', gate: '' }; 
+                        saveToLocal(); 
+                    }
+                };
                 const deleteFlight = (idx) => { if(confirm('刪除這張機票？')) { flightList.value.splice(idx, 1); saveToLocal(); }};
                 const resetAllData = () => { if(confirm('清除所有資料？')) { itineraryData.value = []; expenses.value = []; shopList.value = []; flightList.value = []; userName.value = ''; saveToLocal(); alert('已重置'); }};
 
-                return { currentTab, currentDay, maxDays, showAddSchedule, itineraryData, itineraryDisplay, expenses, shopList, flightList, userName, userAvatar, newSchedule, newExpense, newShopItem, newFlight, pageTitle, totalExpense, mapSrc, getTransportIcon, getTransportName, updateMapFocus, addNewDay, addScheduleItem, deleteSchedule, addExpense, deleteExpense, addShopItem, toggleShopItem, deleteShopItem, addFlight, deleteFlight, resetAllData, saveToLocal };
+                return { currentTab, currentDay, maxDays, showAddSchedule, itineraryData, itineraryDisplay, expenses, shopList, flightList, userName, userAvatar, newSchedule, newExpense, newShopItem, newFlight, pageTitle, totalExpense, mapSrc, getTransportIcon, getTransportName, updateMapFocus, addNewDay, addScheduleItem, deleteSchedule, addExpense, deleteExpense, addShopItem, toggleShopItem, deleteShopItem, addFlight, deleteFlight, resetAllData, saveToLocal, openProfile, closeProfile };
             }
         }).mount('#app');
     </script>
