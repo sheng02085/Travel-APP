@@ -3,8 +3,8 @@
     "short_name": "TravelGo",
     "start_url": "./index.html",
     "display": "standalone",
-    "background_color": "#F2F2F7",
-    "theme_color": "#F2F2F7",
+    "background_color": "#FFFFFF",
+    "theme_color": "#FFFFFF",
     "icons": [
         {
             "src": "icon.png",
