@@ -6,16 +6,14 @@
     
     <title>TravelGo</title>
     
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#F2F2F7">
-    
-    <meta name="apple-mobile-web-app-title" content="TravelGo">
-    
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -40,17 +38,25 @@
         .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s; }
         .slide-up-enter-from { transform: translateY(100%); opacity: 0; }
         .slide-up-leave-to { transform: translateY(20%); opacity: 0; }
-        
-        /* PWA 優化：避免長按選取文字 */
         * { -webkit-touch-callout: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
+
+        /* --- 關鍵修復 CSS --- */
+        /* 1. 確保內容不會被頂部瀏海擋住 */
+        .safe-top {
+            padding-top: env(safe-area-inset-top, 20px);
+        }
+        /* 2. 確保底部按鈕不會被手勢橫條擋住 */
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 20px); /* 預設 20px 緩衝 */
+        }
     </style>
 </head>
 <body class="bg-gray-800 h-screen w-screen overflow-hidden flex justify-center items-center">
 
     <div id="app" class="w-full h-full sm:h-[95vh] sm:w-[400px] sm:rounded-[3rem] bg-ios-bg flex flex-col relative shadow-2xl overflow-hidden">
         
-        <header class="absolute top-0 left-0 right-0 h-24 sm:h-20 bg-white/80 backdrop-blur-md z-30 flex items-end pb-3 justify-between px-4 border-b border-gray-200/50 pt-safe-top">
+        <header class="absolute top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-30 flex items-end pb-3 justify-between px-4 border-b border-gray-200/50 safe-top min-h-[80px]">
             <h1 class="text-lg font-bold truncate transition-all duration-300" :class="currentTab === 'profile' ? 'opacity-0' : 'opacity-100'">
                 {{ pageTitle }}
             </h1>
@@ -60,7 +66,7 @@
             </button>
         </header>
 
-        <main class="flex-1 overflow-y-auto hide-scrollbar pt-28 pb-24 px-4 scroll-smooth">
+        <main class="flex-1 overflow-y-auto hide-scrollbar pt-28 pb-32 px-4 scroll-smooth">
             
             <transition name="fade" mode="out-in">
                 <div v-if="currentTab === 'schedule'" key="schedule" class="space-y-5">
@@ -100,7 +106,7 @@
 
         </main>
 
-        <nav v-if="currentTab !== 'profile'" class="absolute bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-md border-t border-gray-200 flex justify-around items-start pt-3 z-30 pb-safe-bottom">
+        <nav v-if="currentTab !== 'profile'" class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 flex justify-around items-start pt-3 z-30 safe-bottom">
             <button @click="currentTab = 'schedule'" class="flex flex-col items-center gap-1 w-14 group"><i class="fa-solid fa-calendar-days text-xl transition-colors duration-200" :class="currentTab === 'schedule' ? 'text-ios-blue' : 'text-gray-400'"></i><span class="text-[10px] font-medium" :class="currentTab === 'schedule' ? 'text-ios-blue' : 'text-gray-400'">行程</span></button>
             <button @click="currentTab = 'map'" class="flex flex-col items-center gap-1 w-14 group"><i class="fa-solid fa-map text-xl transition-colors duration-200" :class="currentTab === 'map' ? 'text-ios-blue' : 'text-gray-400'"></i><span class="text-[10px] font-medium" :class="currentTab === 'map' ? 'text-ios-blue' : 'text-gray-400'">地圖</span></button>
             <button @click="currentTab = 'wallet'" class="flex flex-col items-center gap-1 w-14 group"><i class="fa-solid fa-wallet text-xl transition-colors duration-200" :class="currentTab === 'wallet' ? 'text-ios-blue' : 'text-gray-400'"></i><span class="text-[10px] font-medium" :class="currentTab === 'wallet' ? 'text-ios-blue' : 'text-gray-400'">記帳</span></button>
@@ -109,12 +115,12 @@
         </nav>
 
         <transition name="slide-up">
-            <div v-if="currentTab === 'profile'" class="absolute inset-0 bg-gray-100 z-50 flex flex-col pt-safe-top">
-                <div class="h-14 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 border-b border-gray-200"><span class="text-lg font-bold">個人中心</span><button @click="currentTab = 'schedule'" class="text-ios-blue font-bold text-sm bg-gray-100 px-3 py-1.5 rounded-full active:bg-gray-200">完成</button></div>
+            <div v-if="currentTab === 'profile'" class="absolute inset-0 bg-gray-100 z-50 flex flex-col safe-top">
+                <div class="h-14 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 border-b border-gray-200 min-h-[60px]"><span class="text-lg font-bold">個人中心</span><button @click="currentTab = 'schedule'" class="text-ios-blue font-bold text-sm bg-gray-100 px-3 py-1.5 rounded-full active:bg-gray-200">完成</button></div>
                 <div class="flex-1 overflow-y-auto p-4 space-y-6">
                     <div class="bg-white p-6 rounded-3xl shadow-ios flex flex-col items-center"><div class="w-24 h-24 rounded-full bg-gray-200 mb-4 relative overflow-hidden group"><i v-if="!userAvatar" class="fa-solid fa-user text-4xl text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i><img v-else :src="userAvatar" class="w-full h-full object-cover"></div><input v-model="userName" @input="saveToLocal" type="text" class="text-center text-xl font-bold bg-transparent border-b border-gray-200 focus:border-ios-blue outline-none pb-1" placeholder="輸入您的名字"></div>
                     <div class="bg-white rounded-3xl shadow-ios overflow-hidden"><div class="p-4 border-b border-gray-100 flex justify-between items-center"><span class="font-bold text-gray-700">總行程數</span><span class="text-gray-400">{{ itineraryData.length }}</span></div><div class="p-4 border-b border-gray-100 flex justify-between items-center"><span class="font-bold text-gray-700">累積支出</span><span class="text-gray-400">NT$ {{ totalExpense }}</span></div><button @click="resetAllData" class="w-full p-4 text-ios-red font-bold text-center active:bg-gray-50 transition">重置所有資料</button></div>
-                    <p class="text-center text-xs text-gray-400 mt-4">TravelGo v3.0 (PWA Ready)</p>
+                    <p class="text-center text-xs text-gray-400 mt-4">TravelGo v3.1 (PWA Patched)</p>
                 </div>
             </div>
         </transition>
