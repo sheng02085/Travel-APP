@@ -55,7 +55,7 @@
         .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
         .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(10px); }
         
-        /* 膠囊按鈕樣式 - 修改為更明確的膠囊形狀 */
+        /* 膠囊按鈕樣式 */
         .capsule-btn {
             @apply px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap border;
         }
@@ -167,8 +167,8 @@
                         <div class="flex justify-between items-center"><h3 class="font-bold text-gray-800 text-sm">新增機票</h3></div>
                         
                         <div class="flex gap-3">
-                            <input v-model="newFlight.airline" placeholder="航空" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
-                            <input v-model="newFlight.flightNo" list="flight-numbers" placeholder="班次 (ex: JX800)" class="w-1/3 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            <input v-model="newFlight.airline" placeholder="航空" class="flex-1 min-w-0 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            <input v-model="newFlight.flightNo" list="flight-numbers" placeholder="班次 (ex: JX800)" class="w-28 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
                             <datalist id="flight-numbers">
                                 <option value="JX800 (TPE-NRT)">
                                 <option value="JX801 (NRT-TPE)">
@@ -180,8 +180,8 @@
                         </div>
                         
                         <div class="flex gap-3">
-                            <input v-model="newFlight.from" placeholder="出發地 (TPE)" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
-                            <input v-model="newFlight.to" placeholder="目的地 (NRT)" class="flex-1 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            <input v-model="newFlight.from" placeholder="出發地 (TPE)" class="flex-1 min-w-0 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            <input v-model="newFlight.to" placeholder="目的地 (NRT)" class="flex-1 min-w-0 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
                         </div>
                         
                         <div>
@@ -282,7 +282,7 @@
                 const itineraryDisplay = computed(() => itineraryData.value.filter(item => item.day === currentDay.value).sort((a, b) => a.time.localeCompare(b.time)));
                 const totalExpense = computed(() => expenses.value.reduce((sum, item) => sum + item.amount, 0));
                 
-                const mapSrc = computed(() => `https://maps.google.com/maps?q=${mapQuery.value}&t=&z=13&ie=UTF8&iwloc=&output=embed`);
+                const mapSrc = computed(() => `googleusercontent.com/maps.google.com/5{mapQuery.value}&t=&z=13&ie=UTF8&iwloc=&output=embed`);
                 
                 const updateMapFocus = (location) => { if(location) mapQuery.value = location; };
                 const getTransportIcon = (t) => { const icons = { 'walk': '<i class="fa-solid fa-person-walking"></i>', 'train': '<i class="fa-solid fa-train-subway"></i>', 'taxi': '<i class="fa-solid fa-taxi"></i>', 'bus': '<i class="fa-solid fa-bus-simple"></i>', 'none': '<i class="fa-solid fa-map-pin"></i>' }; return icons[t] || icons['none']; };
