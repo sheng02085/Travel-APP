@@ -26,7 +26,8 @@
                     colors: { ios: { bg: '#F2F2F7', blue: '#007AFF', red: '#FF3B30', green: '#34C759' } },
                     boxShadow: { 
                         'up': '0 -5px 25px -5px rgba(0, 0, 0, 0.05)',
-                        'float': '0 8px 30px rgba(0,0,0,0.12)'
+                        'float': '0 8px 30px rgba(0,0,0,0.12)',
+                        'card': '0 4px 20px rgba(0,0,0,0.08)'
                     }
                 }
             }
@@ -45,7 +46,6 @@
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .content-safe-area { padding-bottom: calc(env(safe-area-inset-bottom) + 90px); }
 
-        /* 動畫設定 */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
         
@@ -55,15 +55,25 @@
         .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
         .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(10px); }
         
-        /* 膠囊按鈕樣式 */
+        /* 膠囊按鈕樣式 (Day 1) */
         .capsule-btn {
-            @apply px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap border;
+            @apply px-5 py-2 rounded-full text-sm font-bold transition-all duration-200 border border-transparent whitespace-nowrap;
         }
         .capsule-active {
-            @apply bg-black text-white border-transparent shadow-lg scale-105;
+            @apply bg-black text-white shadow-md transform scale-105;
         }
         .capsule-inactive {
-            @apply bg-gray-100 text-gray-500 border-transparent;
+            @apply bg-gray-100 text-gray-500 hover:bg-gray-200;
+        }
+        
+        /* 自定義下拉選單樣式 */
+        .custom-select {
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
         }
     </style>
 </head>
@@ -72,69 +82,72 @@
 
     <div id="app" class="w-full h-[100dvh] bg-white flex flex-col relative overflow-hidden">
         
-        <header class="absolute top-0 left-0 right-0 z-40 flex items-center justify-between px-5 pb-3 bg-white/95 backdrop-blur-sm border-b border-gray-100 safe-top min-h-[50px]">
-            <h1 class="text-xl font-bold tracking-tight text-gray-900">{{ pageTitle }}</h1>
+        <header class="absolute top-0 left-0 right-0 z-40 flex items-center justify-between px-6 pb-3 bg-white/95 backdrop-blur-sm border-b border-gray-100 safe-top min-h-[60px]">
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">{{ pageTitle }}</h1>
             <button @click="openProfile" class="w-9 h-9 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center active:scale-95 transition-transform">
                 <img v-if="userAvatar" :src="userAvatar" class="w-full h-full object-cover">
                 <i v-else class="fa-solid fa-user text-gray-400 text-sm"></i>
             </button>
         </header>
 
-        <main class="flex-1 relative overflow-hidden pt-[calc(env(safe-area-inset-top)+50px)]">
+        <main class="flex-1 relative overflow-hidden pt-[calc(env(safe-area-inset-top)+60px)]">
             
             <transition name="fade" mode="out-in">
                 
                 <div v-if="currentTab === 'schedule'" key="schedule" class="flex flex-col h-full bg-gray-50">
-                    <div class="h-[35%] w-full relative shrink-0">
+                    <div class="h-[38%] w-full relative shrink-0">
                         <iframe :src="mapSrc" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
-                        <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50/50 to-transparent pointer-events-none"></div>
+                        <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none"></div>
                     </div>
 
-                    <div class="flex-1 bg-white rounded-t-[2rem] relative z-10 -mt-6 shadow-up flex flex-col overflow-hidden isolate">
+                    <div class="flex-1 bg-white rounded-t-[2rem] relative z-10 -mt-6 shadow-up flex flex-col overflow-hidden isolate ring-1 ring-black/5">
                         
-                        <div class="pt-4 pb-3 px-4 bg-white border-b border-gray-50 z-20">
-                            <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4"></div>
+                        <div class="pt-5 pb-3 px-5 bg-white border-b border-gray-50 z-20">
+                            <div class="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mb-4"></div>
                             <div class="flex overflow-x-auto hide-scrollbar gap-3 pb-1 items-center">
                                 <button v-for="day in maxDays" :key="day" 
                                     @click="currentDay = day" 
                                     :class="['capsule-btn', currentDay === day ? 'capsule-active' : 'capsule-inactive']">
-                                    <span class="text-[10px] opacity-70 mr-1 uppercase">Day</span>{{ day }}
+                                    <span class="mr-1 text-xs opacity-80 uppercase tracking-wide">Day</span><span class="text-base">{{ day }}</span>
                                 </button>
-                                <button @click="addNewDay" class="flex-shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-gray-300 text-gray-400 flex items-center justify-center active:bg-gray-100 transition">
-                                    <i class="fa-solid fa-plus text-xs"></i>
+                                <button @click="addNewDay" class="flex-shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-gray-200 text-gray-400 flex items-center justify-center active:bg-gray-50 transition">
+                                    <i class="fa-solid fa-plus"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="flex-1 overflow-y-auto hide-scrollbar p-5 content-safe-area">
-                             <div v-if="itineraryDisplay.length === 0" class="flex flex-col items-center justify-center h-48 text-gray-300">
-                                <i class="fa-regular fa-calendar-plus text-3xl mb-2 opacity-50"></i>
-                                <p class="text-sm font-medium">點擊右下角開始規劃</p>
+                        <div class="flex-1 overflow-y-auto hide-scrollbar p-5 content-safe-area bg-white">
+                             <div v-if="itineraryDisplay.length === 0" class="flex flex-col items-center justify-center h-40 text-gray-300">
+                                <i class="fa-regular fa-map text-4xl mb-3 opacity-30"></i>
+                                <p class="text-sm font-medium">尚無行程，點擊右下角新增</p>
                             </div>
 
-                            <transition-group name="list" tag="div" class="space-y-4">
+                            <transition-group name="list" tag="div" class="space-y-5">
                                 <div v-for="(item, index) in itineraryDisplay" :key="item.id" 
                                      @click="updateMapFocus(item.location)"
-                                     class="flex gap-4 group cursor-pointer bg-white active:scale-[0.99] transition-transform">
-                                    <div class="flex flex-col items-center pt-1 min-w-[48px]">
-                                        <span class="text-xs font-bold text-gray-900 font-mono">{{ item.time }}</span>
+                                     class="flex gap-5 group cursor-pointer bg-white active:scale-[0.99] transition-transform">
+                                    <div class="flex flex-col items-center pt-1 min-w-[50px]">
+                                        <span class="text-sm font-bold text-gray-900 font-mono tracking-tight">{{ item.time }}</span>
                                         <div class="w-0.5 h-full bg-gray-100 mt-2 rounded-full relative"><div class="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-300 rounded-full group-hover:bg-black transition-colors"></div></div>
                                     </div>
                                     <div class="flex-1 pb-5 border-b border-gray-50">
                                         <div class="flex justify-between items-start">
-                                            <div class="space-y-1">
-                                                <h3 class="font-bold text-gray-900 text-base leading-snug">{{ item.title }}</h3>
-                                                <div v-if="item.transport && item.transport !== 'none'" class="inline-flex items-center gap-1.5 text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md text-[11px] font-bold"><span v-html="getTransportIcon(item.transport)"></span><span>{{ getTransportName(item.transport) }}</span></div>
-                                                <p class="text-xs text-gray-400 flex items-center pt-1"><i class="fa-solid fa-location-dot text-[10px] mr-1.5 text-gray-300"></i>{{ item.location }}</p>
+                                            <div class="space-y-1.5">
+                                                <h3 class="font-bold text-gray-900 text-lg leading-snug">{{ item.title }}</h3>
+                                                <div v-if="item.transport && item.transport !== 'none'" class="inline-flex items-center gap-1.5 text-gray-600 bg-gray-100 px-2.5 py-1 rounded-lg text-xs font-bold">
+                                                    <span v-html="getTransportIcon(item.transport)"></span>
+                                                    <span>{{ getTransportName(item.transport) }}</span>
+                                                </div>
+                                                <p class="text-xs text-gray-400 flex items-center"><i class="fa-solid fa-location-dot text-[10px] mr-1.5 text-gray-300"></i>{{ item.location }}</p>
                                             </div>
-                                            <button @click.stop="deleteSchedule(item.id)" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors -mr-2"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                                            <button @click.stop="deleteSchedule(item.id)" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors -mr-2"><i class="fa-solid fa-trash-can"></i></button>
                                         </div>
                                     </div>
                                 </div>
                             </transition-group>
                         </div>
 
-                        <button @click="showAddSchedule = true" class="absolute bottom-6 right-6 w-14 h-14 bg-black text-white rounded-full shadow-float flex items-center justify-center text-xl active:scale-90 transition z-30 hover:bg-gray-900">
+                        <button @click="showAddSchedule = true" class="absolute bottom-6 right-6 w-14 h-14 bg-black text-white rounded-full shadow-float flex items-center justify-center text-2xl active:scale-90 transition z-30 hover:bg-gray-900">
                             <i class="fa-solid fa-plus"></i>
                         </button>
                     </div>
@@ -163,38 +176,42 @@
                 </div>
 
                 <div v-else-if="currentTab === 'flight'" key="flight" class="h-full overflow-y-auto p-5 bg-white content-safe-area">
-                    <div class="bg-gray-50 p-5 rounded-[1.5rem] space-y-4 mb-6 border border-gray-100">
-                        <div class="flex justify-between items-center"><h3 class="font-bold text-gray-800 text-sm">新增機票</h3></div>
+                    <div class="bg-gray-50 p-6 rounded-[1.5rem] space-y-5 mb-6 border border-gray-100 shadow-sm">
+                        <div class="flex justify-between items-center"><h3 class="font-bold text-gray-900 text-lg">新增機票</h3></div>
                         
                         <div class="flex gap-3">
-                            <input v-model="newFlight.airline" placeholder="航空" class="flex-1 min-w-0 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
-                            <input v-model="newFlight.flightNo" list="flight-numbers" placeholder="班次 (ex: JX800)" class="w-28 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
-                            <datalist id="flight-numbers">
-                                <option value="JX800 (TPE-NRT)">
-                                <option value="JX801 (NRT-TPE)">
-                                <option value="BR198 (TPE-NRT)">
-                                <option value="BR197 (NRT-TPE)">
-                                <option value="CI100 (TPE-NRT)">
-                                <option value="CI101 (NRT-TPE)">
-                            </datalist>
+                            <div class="flex-1 min-w-0">
+                                <label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">航空公司</label>
+                                <input v-model="newFlight.airline" placeholder="航空" class="w-full bg-white p-3 rounded-xl text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-black/5">
+                            </div>
+                            <div class="w-28 flex-shrink-0">
+                                <label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">班次</label>
+                                <input v-model="newFlight.flightNo" list="flight-options" placeholder="ex: JX800" class="w-full bg-white p-3 rounded-xl text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-black/5">
+                                <datalist id="flight-options">
+                                    <option value="JX800">
+                                    <option value="JX801">
+                                    <option value="BR198">
+                                    <option value="CI100">
+                                </datalist>
+                            </div>
                         </div>
                         
                         <div class="flex gap-3">
-                            <input v-model="newFlight.from" placeholder="出發地 (TPE)" class="flex-1 min-w-0 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
-                            <input v-model="newFlight.to" placeholder="目的地 (NRT)" class="flex-1 min-w-0 bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                            <div class="flex-1 min-w-0"><label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">出發地</label><input v-model="newFlight.from" placeholder="TPE" class="w-full bg-white p-3 rounded-xl text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-black/5"></div>
+                            <div class="flex-1 min-w-0"><label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">目的地</label><input v-model="newFlight.to" placeholder="NRT" class="w-full bg-white p-3 rounded-xl text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-black/5"></div>
                         </div>
                         
                         <div>
                              <label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">搭乘日期</label>
-                             <input v-model="newFlight.date" type="date" class="w-full bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm">
+                             <input v-model="newFlight.date" type="date" class="w-full bg-white p-3 rounded-xl text-sm font-bold outline-none shadow-sm">
                         </div>
                         
                         <div class="flex gap-3">
-                            <div class="flex-1"><label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">起飛時間</label><input v-model="newFlight.depTime" type="time" class="w-full bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm"></div>
-                            <div class="flex-1"><label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">抵達時間</label><input v-model="newFlight.arrTime" type="time" class="w-full bg-white p-3 rounded-xl text-xs font-bold outline-none shadow-sm"></div>
+                            <div class="flex-1"><label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">起飛時間</label><input v-model="newFlight.depTime" type="time" class="w-full bg-white p-3 rounded-xl text-sm font-bold outline-none shadow-sm"></div>
+                            <div class="flex-1"><label class="text-[10px] text-gray-400 font-bold ml-1 mb-1 block">抵達時間</label><input v-model="newFlight.arrTime" type="time" class="w-full bg-white p-3 rounded-xl text-sm font-bold outline-none shadow-sm"></div>
                         </div>
                         
-                        <button @click="addFlight" class="w-full bg-black text-white py-3 rounded-xl text-xs font-bold shadow-md active:scale-95 transition mt-2">新增機票</button>
+                        <button @click="addFlight" class="w-full bg-black text-white py-3.5 rounded-xl text-sm font-bold shadow-md active:scale-95 transition mt-2">確認新增</button>
                     </div>
 
                     <transition-group name="list" tag="div" class="space-y-4">
@@ -205,15 +222,51 @@
             </transition>
 
             <transition name="fade">
-                <div v-if="showAddSchedule" class="absolute inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-end justify-center p-4 safe-bottom">
+                <div v-if="showAddSchedule" class="absolute inset-0 z-50 bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-5">
                     <transition name="slide-up" appear>
-                        <div v-if="showAddSchedule" class="bg-white w-full max-w-sm p-6 rounded-[2rem] shadow-2xl space-y-4 relative max-h-[85vh] overflow-y-auto">
-                            <div class="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mb-2"></div>
-                            <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-gray-900 text-xl">新增行程</h3><button @click="showAddSchedule = false" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-400 hover:bg-gray-100 transition"><i class="fa-solid fa-times"></i></button></div>
-                            <div class="grid grid-cols-2 gap-4"><div class="bg-gray-50 p-3 rounded-2xl border border-gray-100"><label class="text-[10px] text-gray-400 font-bold block mb-1 ml-1">時間</label><input v-model="newSchedule.time" type="time" class="bg-transparent w-full text-sm font-bold outline-none h-8"></div><div class="bg-gray-50 p-3 rounded-2xl border border-gray-100"><label class="text-[10px] text-gray-400 font-bold block mb-1 ml-1">交通</label><select v-model="newSchedule.transport" class="bg-transparent w-full text-sm font-bold outline-none h-8"><option value="walk">🚶 步行</option><option value="train">🚇 地鐵</option><option value="taxi">🚕 計程車</option><option value="bus">🚌 巴士</option><option value="none">📍 定點</option></select></div></div>
-                            <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100"><label class="text-[10px] text-gray-400 font-bold block mb-1 ml-1">地區</label><input v-model="newSchedule.region" placeholder="ex: 東京" class="bg-transparent w-full text-sm font-bold outline-none h-8"></div>
-                            <div class="space-y-3"><input v-model="newSchedule.title" placeholder="景點名稱" class="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold outline-none transition focus:bg-white focus:ring-2 focus:ring-black/5 border border-transparent focus:border-gray-100"><input v-model="newSchedule.location" placeholder="Google Maps 地點關鍵字" class="w-full bg-gray-50 p-4 rounded-2xl text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-black/5 border border-transparent focus:border-gray-100"></div>
-                            <button @click="addScheduleItem" class="w-full bg-black text-white py-4 rounded-2xl font-bold text-sm active:scale-95 transition-transform shadow-lg mt-2">確認新增</button>
+                        <div v-if="showAddSchedule" class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 relative overflow-hidden">
+                            
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-gray-900 text-2xl">新增行程</h3>
+                                <button @click="showAddSchedule = false" class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition"><i class="fa-solid fa-times"></i></button>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 mb-5">
+                                <div class="bg-gray-50 p-3 rounded-2xl">
+                                    <label class="text-[11px] text-gray-400 font-bold block mb-1">時間</label>
+                                    <input v-model="newSchedule.time" type="time" class="bg-transparent w-full font-bold text-lg outline-none custom-select">
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-2xl">
+                                    <label class="text-[11px] text-gray-400 font-bold block mb-1">交通方式</label>
+                                    <select v-model="newSchedule.transport" class="bg-transparent w-full font-bold text-lg outline-none custom-select">
+                                        <option value="walk">🚶 步行</option>
+                                        <option value="train">🚇 地鐵</option>
+                                        <option value="taxi">🚕 計程車</option>
+                                        <option value="bus">🚌 巴士</option>
+                                        <option value="none">📍 定點</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-5">
+                                <label class="text-[11px] text-gray-400 font-bold block mb-2">旅遊地區</label>
+                                <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                                    <button v-for="region in ['東京', '大阪', '京都', '首爾', '台北']" 
+                                        @click="newSchedule.region = region"
+                                        :class="newSchedule.region === region ? 'bg-black text-white' : 'bg-white border border-gray-200 text-gray-500'"
+                                        class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors">
+                                        {{ region }}
+                                    </button>
+                                </div>
+                                <p class="mt-2 text-sm font-bold text-gray-900 ml-1">{{ newSchedule.region }}</p>
+                            </div>
+
+                            <div class="space-y-3 mb-6">
+                                <input v-model="newSchedule.title" placeholder="景點名稱 (例如: 清水寺)" class="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold outline-none transition placeholder-gray-400">
+                                <input v-model="newSchedule.location" placeholder="Google Maps 地點關鍵字" class="w-full bg-gray-50 p-4 rounded-2xl text-sm outline-none transition placeholder-gray-400">
+                            </div>
+                            
+                            <button @click="addScheduleItem" class="w-full bg-black text-white py-4 rounded-2xl font-bold text-base active:scale-95 transition-transform shadow-lg">確認新增</button>
                         </div>
                     </transition>
                 </div>
