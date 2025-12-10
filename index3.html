@@ -1,0 +1,239 @@
+import React, { useState, useEffect } from 'react';
+import { Tab, ScheduleItem, ExpenseItem, ShopItem, FlightItem } from './types';
+import { ScheduleView } from './components/ScheduleView';
+import { WalletView } from './components/WalletView';
+import { ShoppingView } from './components/ShoppingView';
+import { FlightView } from './components/FlightView';
+import { Modal } from './components/ui/Modal';
+import { Button } from './components/ui/Button';
+import { Map, Wallet, ShoppingBag, Plane, User, CheckCircle2 } from 'lucide-react';
+
+export default function App() {
+  // State
+  const [currentTab, setCurrentTab] = useState<Tab>('schedule');
+  const [currentDay, setCurrentDay] = useState(1);
+  const [userName, setUserName] = useState('Traveler');
+  const [isAddItemOpen, setIsAddItemOpen] = useState(false);
+  const [mapQuery, setMapQuery] = useState('Tokyo');
+
+  // Data State
+  const [itinerary, setItinerary] = useState<ScheduleItem[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [shopList, setShopList] = useState<ShopItem[]>([]);
+  const [flights, setFlights] = useState<FlightItem[]>([]);
+
+  // New Schedule Item Form State
+  const [newItem, setNewItem] = useState<Partial<ScheduleItem>>({
+    time: '10:00',
+    transport: 'walk',
+    region: 'Tokyo'
+  });
+
+  // Load Data
+  useEffect(() => {
+    const load = (key: string, setter: any) => {
+      const data = localStorage.getItem(key);
+      if (data) setter(JSON.parse(data));
+    };
+    load('tg_itinerary', setItinerary);
+    load('tg_expenses', setExpenses);
+    load('tg_shop', setShopList);
+    load('tg_flights', setFlights);
+    
+    const savedName = localStorage.getItem('tg_name');
+    if (savedName) setUserName(savedName);
+  }, []);
+
+  // Save Data
+  useEffect(() => { localStorage.setItem('tg_itinerary', JSON.stringify(itinerary)); }, [itinerary]);
+  useEffect(() => { localStorage.setItem('tg_expenses', JSON.stringify(expenses)); }, [expenses]);
+  useEffect(() => { localStorage.setItem('tg_shop', JSON.stringify(shopList)); }, [shopList]);
+  useEffect(() => { localStorage.setItem('tg_flights', JSON.stringify(flights)); }, [flights]);
+  useEffect(() => { localStorage.setItem('tg_name', userName); }, [userName]);
+
+  // Actions
+  const handleAddSchedule = () => {
+    if (newItem.title && newItem.location) {
+      const item: ScheduleItem = {
+        id: crypto.randomUUID(),
+        day: currentDay,
+        time: newItem.time || '10:00',
+        title: newItem.title,
+        location: newItem.location,
+        transport: newItem.transport || 'walk',
+        region: newItem.region || 'Tokyo'
+      };
+      setItinerary([...itinerary, item]);
+      setMapQuery(item.location);
+      // Keep region for convenience, reset others
+      setNewItem({ time: '10:00', transport: 'walk', region: newItem.region, title: '', location: '' });
+      setIsAddItemOpen(false);
+    }
+  };
+
+  const mapSrc = `https://maps.google.com/maps?q=${mapQuery}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+
+  // Profile View
+  const ProfileView = () => (
+    <div className="p-8 flex flex-col items-center space-y-10 pt-20 animate-in slide-in-from-bottom-10">
+      <div className="relative">
+        <div className="w-32 h-32 rounded-full bg-slate-50 border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
+          <User size={48} className="text-slate-300" />
+        </div>
+        <div className="absolute bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full border-4 border-white">
+            <CheckCircle2 size={16} />
+        </div>
+      </div>
+      
+      <div className="w-full max-w-xs space-y-2 text-center">
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Display Name</label>
+        <input 
+          value={userName} 
+          onChange={(e) => setUserName(e.target.value)} 
+          className="text-center text-3xl font-bold bg-transparent border-b-2 border-slate-100 w-full outline-none py-2 focus:border-slate-900 transition-colors text-slate-800" 
+          placeholder="Your Name"
+        />
+      </div>
+
+      <div className="w-full max-w-xs space-y-4">
+        <div className="bg-blue-50 p-4 rounded-2xl flex justify-between items-center text-blue-700">
+            <span className="font-bold text-sm">Total Trip Days</span>
+            <span className="font-black text-xl">{itinerary.length > 0 ? Math.max(...itinerary.map(i => i.day)) : 0}</span>
+        </div>
+        <Button 
+            variant="danger" 
+            className="w-full"
+            onClick={() => {
+                if(confirm('Clear all data? This cannot be undone.')) {
+                    setItinerary([]); setExpenses([]); setShopList([]); setFlights([]);
+                }
+            }}
+        >
+            Reset All Data
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="w-full h-[100dvh] bg-white flex flex-col relative overflow-hidden font-sans">
+      
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 z-40 flex items-center justify-between px-6 pb-4 bg-white/80 backdrop-blur-md border-b border-gray-100 pt-safe min-h-[60px]">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 capitalize">
+          {currentTab === 'schedule' ? 'My Trip' : currentTab}
+        </h1>
+        <button 
+          onClick={() => setCurrentTab('profile')} 
+          className="w-10 h-10 rounded-full bg-slate-50 overflow-hidden border border-gray-200 flex items-center justify-center active:scale-95 transition-transform hover:border-gray-300"
+        >
+          <User size={18} className="text-slate-400" />
+        </button>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 relative overflow-hidden pt-[calc(env(safe-area-inset-top)+60px)]">
+        {currentTab === 'schedule' && (
+          <ScheduleView 
+            items={itinerary}
+            currentDay={currentDay}
+            onDayChange={setCurrentDay}
+            onAddDay={() => setCurrentDay(d => d + 1)}
+            onDelete={(id) => setItinerary(itinerary.filter(i => i.id !== id))}
+            onAddItem={() => setIsAddItemOpen(true)}
+            onFocusMap={setMapQuery}
+            mapSrc={mapSrc}
+          />
+        )}
+        {currentTab === 'wallet' && (
+          <WalletView 
+            expenses={expenses}
+            onAdd={(e) => setExpenses([{ ...e, id: crypto.randomUUID(), date: new Date().toISOString() }, ...expenses])}
+            onDelete={(id) => setExpenses(expenses.filter(e => e.id !== id))}
+          />
+        )}
+        {currentTab === 'shop' && (
+          <ShoppingView 
+            items={shopList}
+            onAdd={(name) => setShopList([{ id: crypto.randomUUID(), name, done: false }, ...shopList])}
+            onToggle={(id) => setShopList(shopList.map(i => i.id === id ? { ...i, done: !i.done } : i))}
+            onDelete={(id) => setShopList(shopList.filter(i => i.id !== id))}
+          />
+        )}
+        {currentTab === 'flight' && (
+          <FlightView 
+            flights={flights}
+            onAdd={(f) => setFlights([...flights, { ...f, id: crypto.randomUUID() }])}
+            onDelete={(id) => setFlights(flights.filter(f => f.id !== id))}
+          />
+        )}
+        {currentTab === 'profile' && <ProfileView />}
+      </main>
+
+      {/* Navigation */}
+      {currentTab !== 'profile' && (
+        <nav className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center pt-3 pb-safe z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
+          {[
+            { id: 'schedule', icon: Map, label: 'Trip' },
+            { id: 'wallet', icon: Wallet, label: 'Wallet' },
+            { id: 'shop', icon: ShoppingBag, label: 'Shop' },
+            { id: 'flight', icon: Plane, label: 'Flights' },
+          ].map((item) => {
+            const isActive = currentTab === item.id;
+            return (
+              <button 
+                key={item.id}
+                onClick={() => setCurrentTab(item.id as Tab)}
+                className={`flex flex-col items-center w-20 py-1 transition-all duration-300 ${isActive ? 'scale-105' : 'opacity-50 hover:opacity-80'}`}
+              >
+                <item.icon 
+                  size={24} 
+                  strokeWidth={isActive ? 2.5 : 2} 
+                  className={`mb-1.5 transition-colors ${isActive ? 'text-slate-900 fill-slate-900/10' : 'text-slate-400'}`} 
+                />
+                <span className={`text-[10px] font-bold ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {item.label}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
+      )}
+
+      {/* Add Schedule Modal */}
+      <Modal isOpen={isAddItemOpen} onClose={() => setIsAddItemOpen(false)} title="New Activity">
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Time</label>
+                    <input type="time" value={newItem.time} onChange={e => setNewItem({...newItem, time: e.target.value})} className="w-full bg-gray-50 p-3 rounded-xl font-bold text-sm outline-none" />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Transport</label>
+                    <select value={newItem.transport} onChange={e => setNewItem({...newItem, transport: e.target.value as any})} className="w-full bg-gray-50 p-3 rounded-xl font-bold text-sm outline-none">
+                        <option value="walk">Walk</option>
+                        <option value="train">Train</option>
+                        <option value="taxi">Taxi</option>
+                        <option value="bus">Bus</option>
+                        <option value="none">Stay</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Activity Name</label>
+                <input placeholder="e.g. Visit Senso-ji Temple" value={newItem.title || ''} onChange={e => setNewItem({...newItem, title: e.target.value})} className="w-full bg-gray-50 p-4 rounded-xl font-bold text-sm outline-none focus:bg-white focus:ring-2 focus:ring-slate-900/10 transition-all" />
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Location (for Map)</label>
+                <input placeholder="Search Google Maps location..." value={newItem.location || ''} onChange={e => setNewItem({...newItem, location: e.target.value})} className="w-full bg-gray-50 p-4 rounded-xl font-bold text-sm outline-none focus:bg-white focus:ring-2 focus:ring-slate-900/10 transition-all" />
+            </div>
+            
+            <Button onClick={handleAddSchedule} className="w-full py-4 mt-4 shadow-xl">Add to Itinerary</Button>
+        </div>
+      </Modal>
+
+    </div>
+  );
+}
